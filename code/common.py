@@ -51,6 +51,7 @@ def load():
     IM["date"] = pd.to_datetime(dict(year=IM.y, month=IM.m, day=1))
     EM["date"] = pd.to_datetime(dict(year=EM.y, month=EM.m, day=1))
     fix_fuel_values(IM)
+    fix_unit_value_outliers(IM)
     return E, EM, IM
 
 
@@ -68,6 +69,37 @@ def fix_fuel_values(IM):
     new = IM.loc[bad, "q"] * [med[(y, m)] for y, m in zip(IM.loc[bad, "y"], IM.loc[bad, "m"])]
     NUM.update(fuel_fix_n=int(bad.sum()), fuel_fix_uv_min=uv[bad].min(), fuel_fix_v_old=IM.loc[bad, "v"].sum() / 1e6, fuel_fix_v_new=new.sum() / 1e6)
     IM.loc[bad, "v"] = new
+
+
+OUTLIER_V_MIN = 1e6     # US$; value errors: only records large enough to move the totals
+OUTLIER_Q_MIN = 5e5     # kg; weight errors: only records of at least 500 tonnes
+OUTLIER_RATIO = 100     # value errors: unit value above 100 times the HS6 median
+OUTLIER_MED_MAX = 10    # ... for products whose median unit value is below US$10/kg (bulk, low-value goods)
+OUTLIER_LOW = 1 / 50    # weight errors: unit value below 1/50 of the HS6 median
+
+
+def fix_unit_value_outliers(IM):
+    """Correct value- and weight-entry errors identified by implausible unit values relative to the median
+    unit value of the same HS6 product (all records, all years).
+    Value errors: records worth at least US$1 million whose unit value exceeds 100 times the HS6 median, for
+    products with a median below US$10/kg; the value is reset to weight x HS6 median unit value.
+    Weight errors: records of at least 500 tonnes whose unit value is below 1/50 of the HS6 median; the weight is
+    reset to value / HS6 median unit value. High-value goods (medicines, aircraft parts, electronics) have medians
+    above US$10/kg and are left unchanged."""
+    q = IM.q.where(IM.q > 0)
+    uv = IM.v / q
+    med = uv.groupby(IM.hs).transform("median")
+    r = uv / med
+    hi = (IM.v >= OUTLIER_V_MIN) & (r > OUTLIER_RATIO) & (med < OUTLIER_MED_MAX)
+    lo = (IM.q >= OUTLIER_Q_MIN) & (r < OUTLIER_LOW)
+    NUM.update(outl_hi_n=int(hi.sum()), outl_hi_firms=int(IM.loc[hi, "f"].nunique()),
+               outl_hi_v_old=IM.loc[hi, "v"].sum() / 1e6, outl_hi_v_new=(IM.q * med)[hi].sum() / 1e6,
+               outl_lo_n=int(lo.sum()), outl_lo_firms=int(IM.loc[lo, "f"].nunique()),
+               outl_lo_kt_old=IM.loc[lo, "q"].sum() / 1e6, outl_lo_kt_new=(IM.v / med)[lo].sum() / 1e6,
+               outl_hi_y0=int(IM.loc[hi, "y"].min()), outl_hi_y1=int(IM.loc[hi, "y"].max()),
+               outl_lo_y0=int(IM.loc[lo, "y"].min()), outl_lo_y1=int(IM.loc[lo, "y"].max()))
+    IM.loc[hi, "v"] = (IM.q * med)[hi]
+    IM.loc[lo, "q"] = (IM.v / med)[lo]
 
 
 def wdi(code):

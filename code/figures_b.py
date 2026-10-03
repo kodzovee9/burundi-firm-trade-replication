@@ -72,7 +72,9 @@ def fig_monthly_imports(IM, E):
                nfirm_month_2014=nfirm.loc["2014"].mean(), nfirm_month_2018=nfirm.loc["2018"].mean(),
                nfirm_month_2023=nfirm.loc["2023"].mean(),
                idx_exp_2018=idx.loc["2018-12-01", True], idx_non_2018=idx.loc["2018-12-01", False],
-               idx_exp_2023=idx.loc["2023-12-01", True], idx_non_2023=idx.loc["2023-12-01", False])
+               idx_exp_2023=idx.loc["2023-12-01", True], idx_non_2023=idx.loc["2023-12-01", False],
+               idx_exp_2018_21=idx.loc["2018-01-01":"2021-12-01", True].mean(),
+               idx_non_2018_21=idx.loc["2018-01-01":"2021-12-01", False].mean())
     # pre/post devaluation window: Jun-Dec 2023 vs Jun-Dec 2022
     w1 = nf[(nf.date >= "2023-06-01") & (nf.date <= "2023-12-01")].v.sum()
     w0 = nf[(nf.date >= "2022-06-01") & (nf.date <= "2022-12-01")].v.sum()
@@ -225,6 +227,10 @@ def fig_fx_balance(E, IM):
     chart_data(14, "b", "Concentration of net forex supply (Lorenz curve)", pd.DataFrame(lorenz).rename_axis("% of net-earning exporters (largest first)"), "Cumulative % of net forex supply", "Plotted at 1-percentile steps, each containing at least 3 firms.")
     save(fig, "f13_fx_balance")
     tot_m = g["m"].sum(1)
+    exp_fy = set(zip(E.f, E.y))
+    fu = IM[(IM.cat == "Fuel") & IM.y.between(2013, 2016)]
+    fu_x = fu[[(f, y) in exp_fy for f, y in zip(fu.f, fu.y)]].groupby("y").v.sum() / 1e6
+    NUM.update(exp_fuel_min_2013_16=fu_x.min(), exp_fuel_max_2013_16=fu_x.max())
     NUM.update(exp_m_share_mean=((mn + mu) / tot_m * 1e6).mean() * 100,
                exp_m_share_2019=((mn + mu) / tot_m * 1e6)[2019] * 100, exp_m_share_2023=((mn + mu) / tot_m * 1e6)[2023] * 100,
                netuser_x_share_mean=(xu / (xn + xu)).mean() * 100,
