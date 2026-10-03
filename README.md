@@ -34,6 +34,7 @@ The code expects three Stata files, placed by default in the folder that *contai
 | World Bank, World Development Indicators (API) | Macro context, balance-of-payments comparison | CC BY 4.0 | `ext/wdi_*.json` (vintage of September 2026) |
 | World Bank Commodity Price Data (Pink Sheet) | Benchmark prices for coffee, tea and gold | CC BY 4.0 | `ext/pink_monthly.xlsx` |
 | Natural Earth, 1:50m countries and lakes | Corridor map | Public domain | `ext/ne_*.geojson` |
+| Banque de la République du Burundi, *Bulletin Mensuel* (August 2019), Table IV.4 | Check of customs fuel imports | Official publication; values transcribed by hand | `ext/brb_fuel_imports.csv` |
 | UN Comtrade public API | Partner-reported (mirror) trade | UN Comtrade terms of use | **Not redistributed.** Downloaded by `code/fetch_external.py` |
 
 ---

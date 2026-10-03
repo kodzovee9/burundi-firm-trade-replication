@@ -92,6 +92,14 @@ def fig_coverage(E, IM):
                fuel_2010_16=(IM[(IM.cat == "Fuel")].groupby("y").v.sum().loc[2010:2016] / 1e6).mean(),
                fuel_2017_23=(IM[(IM.cat == "Fuel")].groupby("y").v.sum().loc[2017:2023] / 1e6).mean(),
                mc_2023=mc[2023], mb_2023=mb[2023], xc_2023=xc[2023], xb_2023b=xb[2023])
+    # fuel: customs (EDD) versus central bank import statistics (BRB, compiled from OBR customs records)
+    brb = pd.read_csv(EXT / "brb_fuel_imports.csv", index_col="year")
+    brb["usd"] = brb.value_mbif / wdi("PA.NUS.FCRF").reindex(brb.index)
+    fu = IM[IM.cat == "Fuel"].groupby("y").agg(v=("v", "sum"), q=("q", "sum"))
+    for y in brb.index:
+        NUM.update({f"brb_fuel_kt_{y}": brb.tonnes[y] / 1e3, f"brb_fuel_usd_{y}": brb.usd[y],
+                    f"edd_fuel_kt_{y}": fu.q[y] / 1e6, f"edd_fuel_usd_{y}": fu.v[y] / 1e6})
+    NUM["brb_fuel_kt_gap_2014_16"] = max(abs(fu.q[y] / 1e6 / (brb.tonnes[y] / 1e3) - 1) * 100 for y in range(2014, 2017))
 
 
 def table_summary(E, IM):

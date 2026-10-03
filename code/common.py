@@ -50,7 +50,24 @@ def load():
     IM["region"] = IM.o.map(partner_region)
     IM["date"] = pd.to_datetime(dict(year=IM.y, month=IM.m, day=1))
     EM["date"] = pd.to_datetime(dict(year=EM.y, month=EM.m, day=1))
+    fix_fuel_values(IM)
     return E, EM, IM
+
+
+FUEL_UV_MAX = 20  # US$/kg; refined petroleum trades at roughly US$1/kg
+FUEL_V_MIN = 1e6  # only records large enough to move the totals
+
+
+def fix_fuel_values(IM):
+    """Revalue large HS 27 records whose unit value is implausible (treated as value-entry errors) at the median
+    unit value of the other HS 27 records in the same month. Tonnage is kept."""
+    fu = (IM.cat == "Fuel") & (IM.q > 0)
+    uv = IM.v / IM.q
+    bad = fu & (uv > FUEL_UV_MAX) & (IM.v > FUEL_V_MIN)
+    med = uv[fu & ~bad].groupby([IM.y, IM.m]).median()
+    new = IM.loc[bad, "q"] * [med[(y, m)] for y, m in zip(IM.loc[bad, "y"], IM.loc[bad, "m"])]
+    NUM.update(fuel_fix_n=int(bad.sum()), fuel_fix_uv_min=uv[bad].min(), fuel_fix_v_old=IM.loc[bad, "v"].sum() / 1e6, fuel_fix_v_new=new.sum() / 1e6)
+    IM.loc[bad, "v"] = new
 
 
 def wdi(code):

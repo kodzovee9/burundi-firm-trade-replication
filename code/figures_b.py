@@ -160,7 +160,7 @@ def fig_importer_margins(IM):
 # --------------------------------------------------- firm-level forex balance sheet (P2)
 def fx_panel(E, IM):
     x = E.groupby(["f", "y"]).v.sum().rename("x")
-    m = IM.groupby(["f", "y"]).v.sum().rename("m")
+    m = IM[IM.cat != "Fuel"].groupby(["f", "y"]).v.sum().rename("m")  # fuel excluded: recording break in 2017
     xm = pd.concat([x, m], axis=1).fillna(0).reset_index()
     xm = xm[xm.y >= 2013]
     main = E.groupby(["f", "y", "grp"]).v.sum().reset_index().sort_values("v").drop_duplicates(["f", "y"], keep="last")
@@ -221,7 +221,7 @@ def fig_fx_balance(E, IM):
     a.legend(fontsize=6, loc="lower right")
     a.grid(axis="x", visible=True)
     fig.tight_layout(w_pad=1.6)
-    chart_data(14, "a", "Forex earned (+) and spent (-) through goods trade, by firm type", pd.DataFrame({"Exports: net-earning exporters": xn, "Exports: net-using exporters": xu, "Imports: net-earning exporters": -mn, "Imports: net-using exporters": -mu, "Imports: pure importers": -mp}).rename_axis("Year"), "US$ million", "Imports are shown as negative values (forex spent). Fuel is included.")
+    chart_data(14, "a", "Forex earned (+) and spent (-) through goods trade, by firm type", pd.DataFrame({"Exports: net-earning exporters": xn, "Exports: net-using exporters": xu, "Imports: net-earning exporters": -mn, "Imports: net-using exporters": -mu, "Imports: pure importers": -mp}).rename_axis("Year"), "US$ million", "Imports are shown as negative values (forex spent). Fuel (HS 27) is excluded because of the 2017 recording break.")
     chart_data(14, "b", "Concentration of net forex supply (Lorenz curve)", pd.DataFrame(lorenz).rename_axis("% of net-earning exporters (largest first)"), "Cumulative % of net forex supply", "Plotted at 1-percentile steps, each containing at least 3 firms.")
     save(fig, "f13_fx_balance")
     tot_m = g["m"].sum(1)
